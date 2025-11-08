@@ -38,6 +38,10 @@ export const authService = {
     return userStr ? JSON.parse(userStr) : null;
   },
 
+  getToken() {
+    return localStorage.getItem("access_token");
+  },
+
   // Check if user is authenticated
   isAuthenticated() {
     return !!localStorage.getItem("access_token");

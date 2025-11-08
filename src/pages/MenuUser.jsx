@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Loader2, Store, Plus, Minus } from "lucide-react";
 import Vector from "@/assets/Group4.svg";
 import api from "@/services/api";
+import { useCart } from "@/contexts/CartContext"; // Import the CartContext
 
 export default function MenuUser() {
   const { warungId } = useParams();
@@ -15,13 +16,25 @@ export default function MenuUser() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [cart, setCart] = useState([]);
   const [quantities, setQuantities] = useState({});
+
+  // Use CartContext instead of local state
+  const {
+    items: cartItems,
+    kantinInfo,
+    addToCart: contextAddToCart,
+    updateQuantity: contextUpdateQuantity,
+    removeFromCart,
+    calculateTotal,
+    getCartItemCount,
+    setKantin,
+    switchKantin,
+    isCartFromKantin
+  } = useCart();
 
   useEffect(() => {
     if (warungId) {
       fetchWarungData();
-      loadCart();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warungId]);
@@ -34,13 +47,27 @@ export default function MenuUser() {
       const response = await api.get(`/warung/${warungId}`);
       const data = response.data;
 
-      setWarungData({
+      const warungInfo = {
         id: data.id,
         name: data.name,
         kantinName: data.kantin?.name || "Kantin",
         kantinAddress: data.kantin?.address || "",
         imageUrl: data.image_url,
-      });
+      };
+
+      setWarungData(warungInfo);
+
+      // Set kantin info in context
+      const kantinData = {
+        id: data.kantin?.id || data.id,
+        name: data.kantin?.name || data.name,
+        description: data.kantin?.description || "",
+        location: data.kantin?.address || data.kantin?.location || "",
+        image_url: data.kantin?.image_url || data.image_url
+      };
+      
+      // Use switchKantin to automatically clear cart if switching to different kantin
+      switchKantin(kantinData);
 
       // Get menu items from warung
       const items = data.menu_items || [];
@@ -69,32 +96,6 @@ export default function MenuUser() {
     }
   };
 
-  const loadCart = () => {
-    try {
-      const savedCart = localStorage.getItem("cart");
-      if (savedCart) {
-        const cartData = JSON.parse(savedCart);
-        setCart(cartData);
-        console.log("Cart loaded from localStorage:", cartData);
-      }
-    } catch (err) {
-      console.error("Error loading cart:", err);
-    }
-  };
-
-  const saveCart = (newCart) => {
-    localStorage.setItem("cart", JSON.stringify(newCart));
-    if (warungData) {
-      localStorage.setItem(
-        "kantinInfo",
-        JSON.stringify({
-          name: warungData.kantinName,
-          address: warungData.kantinAddress,
-        })
-      );
-    }
-  };
-
   const updateQuantity = (itemId, change) => {
     const item = menuItems.find((m) => m.id === itemId);
     if (!item) return;
@@ -112,81 +113,27 @@ export default function MenuUser() {
     const item = menuItems.find((m) => m.id === itemId);
     const qty = quantities[itemId] || 0;
 
-    console.log("=== ADD TO CART DEBUG ===");
-    console.log("Item ID:", itemId);
-    console.log("Item:", item);
-    console.log("Quantity:", qty);
-    console.log("Current cart:", cart);
-    console.log("Warung Data:", warungData);
+    if (!item || qty === 0) return;
 
-    if (!item || qty === 0) {
-      console.log("❌ Cannot add: item not found or quantity is 0");
-      return;
-    }
+    if (!kantinInfo) return;
 
-    if (!warungData) {
-      console.log("❌ Cannot add: warungData is null");
-      return;
-    }
+    // Create the item with warung_id
+    const itemToAdd = {
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: qty,
+      image: item.imageUrl,
+      image_url: item.imageUrl,
+      warungId: parseInt(warungId),
+      warungName: warungData?.name || "Warung",
+      menu_item_id: item.id, // This is important for the API
+    };
 
-    // Check if item already in cart
-    const existingItemIndex = cart.findIndex((c) => c.id === itemId);
-    let newCart;
+    console.log("Adding to cart:", itemToAdd);
 
-    if (existingItemIndex >= 0) {
-      // Update existing item - add to existing quantity
-      newCart = [...cart];
-      newCart[existingItemIndex] = {
-        ...newCart[existingItemIndex],
-        quantity: newCart[existingItemIndex].quantity + qty,
-      };
-      console.log("✅ Updated existing item in cart");
-    } else {
-      // Add new item
-      const newItem = {
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: qty,
-        imageUrl: item.imageUrl,
-        warungId: parseInt(warungId),
-        warungName: warungData.name,
-      };
-      newCart = [...cart, newItem];
-      console.log("✅ Added new item to cart:", newItem);
-    }
-
-    console.log("New cart array:", newCart);
-
-    // Update state
-    setCart(newCart);
-
-    // Save to localStorage
-    try {
-      localStorage.setItem("cart", JSON.stringify(newCart));
-      console.log("✅ Cart saved to localStorage");
-
-      // Verify it was saved
-      const savedCart = localStorage.getItem("cart");
-      console.log("Verification - localStorage cart:", JSON.parse(savedCart));
-    } catch (error) {
-      console.error("❌ Error saving to localStorage:", error);
-    }
-
-    // Save kantin info
-    if (warungData) {
-      try {
-        localStorage.setItem(
-          "kantinInfo",
-          JSON.stringify({
-            name: warungData.kantinName,
-            address: warungData.kantinAddress,
-          })
-        );
-      } catch (error) {
-        console.error("Error saving kantinInfo:", error);
-      }
-    }
+    // Use contextAddToCart which now handles warung_id properly
+    contextAddToCart(itemToAdd);
 
     // Reset quantity for this item
     setQuantities((prev) => ({
@@ -194,15 +141,17 @@ export default function MenuUser() {
       [itemId]: 0,
     }));
 
+    console.log("Cart after addition:", cartItems);
     console.log("=== END ADD TO CART ===");
   };
 
+  // Use context functions instead of local calculations
   const getCartCount = () => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
+    return getCartItemCount();
   };
 
   const getCartTotal = () => {
-    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    return calculateTotal();
   };
 
   const formatCurrency = (amount) => {

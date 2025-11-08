@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import bgImage from "@/assets/Background.svg";
 import { orderService } from "@/services";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
 export default function Pesanan() {
   const navigate = useNavigate();
