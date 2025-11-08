@@ -131,12 +131,12 @@ export default function Menu() {
     menuName: "",
   });
   const [addMenuModal, setAddMenuModal] = useState(false);
-  
+
   // Warung selection state
   const [myWarungs, setMyWarungs] = useState([]);
   const [selectedWarung, setSelectedWarung] = useState(null);
   const [loadingWarungs, setLoadingWarungs] = useState(true);
-  
+
   const [newMenu, setNewMenu] = useState({
     name: "",
     category: "",
@@ -163,7 +163,7 @@ export default function Menu() {
     try {
       setLoadingWarungs(true);
       const currentUser = authService.getCurrentUser();
-      
+
       if (!currentUser || !currentUser.id) {
         setError("User tidak ditemukan. Silakan login kembali.");
         return;
@@ -171,14 +171,16 @@ export default function Menu() {
 
       const response = await api.get(`/user/${currentUser.id}/warung`);
       const warungs = response.data;
-      
+
       setMyWarungs(warungs);
-      
+
       // Auto-select first warung if available
       if (warungs.length > 0) {
         setSelectedWarung(warungs[0]);
       } else {
-        setError("Anda belum memiliki warung. Silakan hubungi admin untuk membuat warung.");
+        setError(
+          "Anda belum memiliki warung. Silakan hubungi admin untuk membuat warung."
+        );
       }
     } catch (err) {
       console.error("Error fetching warungs:", err);
@@ -190,13 +192,15 @@ export default function Menu() {
 
   const fetchMenuItems = async () => {
     if (!selectedWarung) return;
-    
+
     try {
       setLoading(true);
       const data = await menuService.getAll();
-      
+
       // Filter menu items by selected warung
-      const filteredItems = data.filter(item => item.warung_id === selectedWarung.id);
+      const filteredItems = data.filter(
+        (item) => item.warung_id === selectedWarung.id
+      );
       setMenuItems(filteredItems);
       setError(null);
     } catch (err) {
@@ -251,9 +255,9 @@ export default function Menu() {
       return;
     }
     setAddMenuModal(true);
-    setNewMenu(prev => ({
+    setNewMenu((prev) => ({
       ...prev,
-      warung_id: selectedWarung.id
+      warung_id: selectedWarung.id,
     }));
   };
 
@@ -382,9 +386,12 @@ export default function Menu() {
           ) : myWarungs.length === 0 ? (
             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 text-center">
               <Store className="w-12 h-12 text-red-400 mx-auto mb-3" />
-              <p className="text-red-600 font-semibold mb-2">Belum Ada Warung</p>
+              <p className="text-red-600 font-semibold mb-2">
+                Belum Ada Warung
+              </p>
               <p className="text-gray-600 text-sm">
-                Anda belum memiliki warung. Silakan hubungi admin untuk membuat warung.
+                Anda belum memiliki warung. Silakan hubungi admin untuk membuat
+                warung.
               </p>
             </div>
           ) : (
@@ -407,11 +414,17 @@ export default function Menu() {
                         : "bg-white border-gray-200 text-gray-700 hover:border-orange-300 hover:shadow-md"
                     )}
                   >
-                    <div className="font-bold text-base mb-1">{warung.name}</div>
-                    <div className={cn(
-                      "text-xs",
-                      selectedWarung?.id === warung.id ? "text-orange-100" : "text-gray-500"
-                    )}>
+                    <div className="font-bold text-base mb-1">
+                      {warung.name}
+                    </div>
+                    <div
+                      className={cn(
+                        "text-xs",
+                        selectedWarung?.id === warung.id
+                          ? "text-orange-100"
+                          : "text-gray-500"
+                      )}
+                    >
                       {warung.kantin?.name || "Kantin"}
                     </div>
                   </motion.button>
@@ -422,9 +435,14 @@ export default function Menu() {
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-600">
                       Mengelola menu untuk:{" "}
-                      <span className="font-bold text-orange-600">{selectedWarung.name}</span>
+                      <span className="font-bold text-orange-600">
+                        {selectedWarung.name}
+                      </span>
                     </div>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-300"
+                    >
                       {menuItems.length} Menu
                     </Badge>
                   </div>
