@@ -10,7 +10,16 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { UserPlus, Mail, Lock, User, Phone, ArrowRight } from "lucide-react";
+import {
+  UserPlus,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  ArrowRight,
+  Store,
+  ShoppingBag,
+} from "lucide-react";
 import bgImage from "@/assets/Background.svg";
 import { authService } from "@/services";
 
@@ -21,6 +30,7 @@ const Register = () => {
     email: "",
     phone: "",
     password: "",
+    role: "customer",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +53,8 @@ const Register = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: "customer", // Default role
+        phone_number: formData.phone,
+        role: formData.role,
       });
 
       setSuccess("Registration successful! Redirecting to login...");
@@ -169,6 +180,59 @@ const Register = () => {
                   disabled={isSubmitting}
                   className="w-full h-11 px-4 rounded-lg border-2 border-gray-200 focus:border-orange-400 focus:outline-none transition-all duration-300 font-poppins text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 />
+              </div>
+
+              {/* Role Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 font-poppins flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-orange-500" />
+                  Daftar sebagai
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, role: "customer" })
+                      }
+                      disabled={isSubmitting}
+                      className={`w-full h-24 rounded-lg border-2 transition-all duration-300 font-poppins text-sm disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-2 ${
+                        formData.role === "customer"
+                          ? "border-orange-500 bg-orange-50 text-orange-700"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-orange-300"
+                      }`}
+                    >
+                      <ShoppingBag className="w-6 h-6" />
+                      <span className="font-semibold">Customer</span>
+                      <span className="text-xs">Pembeli</span>
+                    </button>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, role: "penjual" })
+                      }
+                      disabled={isSubmitting}
+                      className={`w-full h-24 rounded-lg border-2 transition-all duration-300 font-poppins text-sm disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-2 ${
+                        formData.role === "penjual"
+                          ? "border-orange-500 bg-orange-50 text-orange-700"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-orange-300"
+                      }`}
+                    >
+                      <Store className="w-6 h-6" />
+                      <span className="font-semibold">Penjual</span>
+                      <span className="text-xs">Seller</span>
+                    </button>
+                  </motion.div>
+                </div>
               </div>
 
               {/* Password Field */}

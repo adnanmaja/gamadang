@@ -32,10 +32,21 @@ const Login = () => {
 
     try {
       // Login with auth service
-      await authService.login(formData.email, formData.password);
+      const response = await authService.login(
+        formData.email,
+        formData.password
+      );
 
-      // Navigate to menu page
-      navigate("/menu");
+      // Redirect based on user role
+      if (response.role === "customer") {
+        navigate("/dashboard");
+      } else if (response.role === "penjual" || response.role === "seller") {
+        navigate("/menu");
+      } else if (response.role === "admin") {
+        navigate("/analytics");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(
         err.response?.data?.detail ||
