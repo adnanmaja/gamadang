@@ -13,6 +13,7 @@ export const authService = {
           id: response.data.user_id,
           email: response.data.email,
           name: response.data.full_name,
+          role: response.data.role || "customer",
         })
       );
     }
@@ -40,5 +41,27 @@ export const authService = {
   // Check if user is authenticated
   isAuthenticated() {
     return !!localStorage.getItem("access_token");
+  },
+
+  // Get user role
+  getUserRole() {
+    const user = this.getCurrentUser();
+    return user ? user.role : null;
+  },
+
+  // Check if user is customer
+  isCustomer() {
+    return this.getUserRole() === "customer";
+  },
+
+  // Check if user is seller/penjual
+  isSeller() {
+    const role = this.getUserRole();
+    return role === "penjual" || role === "seller";
+  },
+
+  // Check if user is admin
+  isAdmin() {
+    return this.getUserRole() === "admin";
   },
 };

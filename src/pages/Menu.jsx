@@ -12,9 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, X, Loader2 } from "lucide-react";
+import { Plus, Trash2, Check, X, Loader2, Store } from "lucide-react";
 import bgImage from "@/assets/Background.svg";
-import { menuService } from "@/services";
+import { menuService, authService } from "@/services";
+import api from "@/services/api";
 
 const MenuCard = ({
   name,
@@ -130,26 +131,77 @@ export default function Menu() {
     menuName: "",
   });
   const [addMenuModal, setAddMenuModal] = useState(false);
+
+  // Warung selection state
+  const [myWarungs, setMyWarungs] = useState([]);
+  const [selectedWarung, setSelectedWarung] = useState(null);
+  const [loadingWarungs, setLoadingWarungs] = useState(true);
+
   const [newMenu, setNewMenu] = useState({
     name: "",
     category: "",
     price: "",
     description: "",
-    warung_id: 1, // Default warung ID
+    warung_id: null,
     image_url: "",
     stock: 100,
   });
 
-  // Fetch menu items on component mount
+  // Fetch seller's warungs on component mount
   useEffect(() => {
-    fetchMenuItems();
+    fetchMyWarungs();
   }, []);
 
+  // Fetch menu items when warung is selected
+  useEffect(() => {
+    if (selectedWarung) {
+      fetchMenuItems();
+    }
+  }, [selectedWarung]);
+
+  const fetchMyWarungs = async () => {
+    try {
+      setLoadingWarungs(true);
+      const currentUser = authService.getCurrentUser();
+
+      if (!currentUser || !currentUser.id) {
+        setError("User tidak ditemukan. Silakan login kembali.");
+        return;
+      }
+
+      const response = await api.get(`/user/${currentUser.id}/warung`);
+      const warungs = response.data;
+
+      setMyWarungs(warungs);
+
+      // Auto-select first warung if available
+      if (warungs.length > 0) {
+        setSelectedWarung(warungs[0]);
+      } else {
+        setError(
+          "Anda belum memiliki warung. Silakan hubungi admin untuk membuat warung."
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching warungs:", err);
+      setError("Gagal memuat data warung. Pastikan API berjalan.");
+    } finally {
+      setLoadingWarungs(false);
+    }
+  };
+
   const fetchMenuItems = async () => {
+    if (!selectedWarung) return;
+
     try {
       setLoading(true);
       const data = await menuService.getAll();
-      setMenuItems(data);
+
+      // Filter menu items by selected warung
+      const filteredItems = data.filter(
+        (item) => item.warung_id === selectedWarung.id
+      );
+      setMenuItems(filteredItems);
       setError(null);
     } catch (err) {
       console.error("Error fetching menu items:", err);
@@ -198,7 +250,15 @@ export default function Menu() {
   };
 
   const openAddMenuModal = () => {
+    if (!selectedWarung) {
+      alert("Silakan pilih warung terlebih dahulu");
+      return;
+    }
     setAddMenuModal(true);
+    setNewMenu((prev) => ({
+      ...prev,
+      warung_id: selectedWarung.id,
+    }));
   };
 
   const closeAddMenuModal = () => {
@@ -208,7 +268,7 @@ export default function Menu() {
       category: "",
       price: "",
       description: "",
-      warung_id: 1,
+      warung_id: selectedWarung?.id || null,
       image_url: "",
       stock: 100,
     });
@@ -311,6 +371,87 @@ export default function Menu() {
           </div>
         </motion.div>
 
+        {/* Warung Selector */}
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+          className="mb-8"
+        >
+          {loadingWarungs ? (
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border-2 border-orange-200 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-orange-500 mr-3" />
+              <span className="text-gray-600">Memuat warung...</span>
+            </div>
+          ) : myWarungs.length === 0 ? (
+            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 text-center">
+              <Store className="w-12 h-12 text-red-400 mx-auto mb-3" />
+              <p className="text-red-600 font-semibold mb-2">
+                Belum Ada Warung
+              </p>
+              <p className="text-gray-600 text-sm">
+                Anda belum memiliki warung. Silakan hubungi admin untuk membuat
+                warung.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border-2 border-orange-200">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <Store className="w-5 h-5 inline-block mr-2 mb-1" />
+                Pilih Warung:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {myWarungs.map((warung) => (
+                  <motion.button
+                    key={warung.id}
+                    onClick={() => setSelectedWarung(warung)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                      "p-4 rounded-lg border-2 transition-all text-left",
+                      selectedWarung?.id === warung.id
+                        ? "bg-gradient-to-r from-orange-500 to-orange-400 border-orange-600 text-white shadow-lg"
+                        : "bg-white border-gray-200 text-gray-700 hover:border-orange-300 hover:shadow-md"
+                    )}
+                  >
+                    <div className="font-bold text-base mb-1">
+                      {warung.name}
+                    </div>
+                    <div
+                      className={cn(
+                        "text-xs",
+                        selectedWarung?.id === warung.id
+                          ? "text-orange-100"
+                          : "text-gray-500"
+                      )}
+                    >
+                      {warung.kantin?.name || "Kantin"}
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+              {selectedWarung && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Mengelola menu untuk:{" "}
+                      <span className="font-bold text-orange-600">
+                        {selectedWarung.name}
+                      </span>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-300"
+                    >
+                      {menuItems.length} Menu
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
+
         {/* Main Content Container */}
         <motion.main
           initial={{ y: 50, opacity: 0 }}
@@ -322,15 +463,28 @@ export default function Menu() {
           }}
         >
           {/* Loading State */}
-          {loading && (
+          {loading && selectedWarung && (
             <div className="flex justify-center items-center py-20">
               <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
               <span className="ml-3 text-lg text-gray-600">Memuat menu...</span>
             </div>
           )}
 
+          {/* No Warung Selected */}
+          {!selectedWarung && !loadingWarungs && myWarungs.length > 0 && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-12 text-center">
+              <Store className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+              <p className="text-blue-600 font-semibold text-lg mb-2">
+                Pilih Warung
+              </p>
+              <p className="text-gray-600">
+                Silakan pilih warung di atas untuk mengelola menu
+              </p>
+            </div>
+          )}
+
           {/* Error State */}
-          {error && !loading && (
+          {error && !loading && selectedWarung && (
             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 text-center">
               <p className="text-red-600 font-semibold">{error}</p>
               <Button
@@ -343,7 +497,7 @@ export default function Menu() {
           )}
 
           {/* Menu Cards Grid */}
-          {!loading && !error && (
+          {!loading && !error && selectedWarung && (
             <AnimatePresence mode="popLayout">
               <motion.div
                 className="grid grid-cols-1 lg:grid-cols-2 gap-6"

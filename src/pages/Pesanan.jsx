@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -12,11 +13,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Clock, CheckCircle2, XCircle, Package, Loader2 } from "lucide-react";
+import {
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Package,
+  Loader2,
+  Eye,
+} from "lucide-react";
 import bgImage from "@/assets/Background.svg";
 import { orderService } from "@/services";
 
 export default function Pesanan() {
+  const navigate = useNavigate();
   const [ordersData, setOrdersData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -452,6 +461,26 @@ export default function Pesanan() {
                         className="px-6 py-2 rounded-[20px] text-lg md:text-xl font-semibold font-poppins bg-gradient-to-br from-gray-500 to-gray-400 text-white shadow-lg border-[3px] border-gray-500 hover:from-gray-600 hover:to-gray-500"
                       >
                         Tolak
+                      </motion.button>
+                      <motion.button
+                        onClick={() => navigate(`/status/${orderData.id}`)}
+                        whileHover={{
+                          scale: 1.04,
+                          y: -4,
+                          borderWidth: "5px",
+                          borderColor: "#f97316",
+                          boxShadow:
+                            "0 15px 40px -10px rgba(249, 115, 22, 0.6)",
+                        }}
+                        whileTap={{ scale: 0.96, y: 0 }}
+                        transition={{
+                          duration: 0.4,
+                          ease: [0.19, 1.0, 0.22, 1.0],
+                        }}
+                        className="px-6 py-2 rounded-[20px] text-lg md:text-xl font-semibold font-poppins bg-gradient-to-br from-orange-500 to-orange-400 text-white shadow-lg border-[3px] border-orange-500 hover:from-orange-600 hover:to-orange-500 flex items-center gap-2"
+                      >
+                        <Eye className="w-5 h-5" />
+                        Lihat Status
                       </motion.button>
                     </div>
                   </motion.div>
