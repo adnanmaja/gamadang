@@ -49,7 +49,7 @@ export default function Pesanan() {
       // Transform API data to match component format
       const transformedOrders = data.map((order) => ({
         orderId: `ORDER-${order.id.toString().padStart(3, "0")}`,
-        userId: `user-${order.user_id}`,
+        userId: `user-${order.user_name}`,
         items: order.order_items || [],
         total: `Rp${order.total_price.toLocaleString("id-ID")}`,
         status: mapPaymentStatus(order.payment_status),

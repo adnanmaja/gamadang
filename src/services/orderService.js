@@ -6,7 +6,7 @@ export const orderService = {
   async create(orderData) {
     try {
       const token = authService.getToken();
-      const response = await fetch(`${API_BASE_URL}/order`, {
+      const response = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
