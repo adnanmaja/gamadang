@@ -1,15 +1,30 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import Palelu from "../assets/Palelu.svg";
+import { authService } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
 
 function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { scrollY } = useScroll();
+  const navigate = useNavigate();
+  
+  const { isLoggedIn, currentUser, logout } = useAuth();
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 30);
   });
+
+  const handleLogin = () => {
+    navigate("/login");
+  };
+
+  const handleLogout = () => {
+    logout(); 
+    navigate("/");
+  };
+
 
   return (
     <motion.div
@@ -57,36 +72,74 @@ function Navbar() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-4 md:gap-8 flex-shrink-0">
-              <Link to="/menu">
-                <motion.div
-                  className="text-gray-700 hover:text-orange-600 font-poppins font-semibold transition-colors duration-300 text-[10px] sm:text-sm md:text-base whitespace-nowrap hidden sm:block"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Menu
-                </motion.div>
-              </Link>
+              {isLoggedIn ? (
+                <>
+                  {/* Welcome message with user name
+                  <div className="hidden sm:flex items-center">
+                    <motion.div
+                      className="text-gray-700 font-poppins font-semibold text-[10px] sm:text-sm md:text-base whitespace-nowrap"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      Hi, <span className="text-orange-600">{currentUser?.name || currentUser?.email?.split('@')[0] || 'User'}</span>
+                    </motion.div>
+                  </div> */}
 
-              <Link to="/pesanan">
-                <motion.div
-                  className="text-gray-700 hover:text-orange-600 font-poppins font-semibold transition-colors duration-300 text-[10px] sm:text-sm md:text-base whitespace-nowrap"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Pesanan
-                </motion.div>
-              </Link>
+                  {/* Menu items for logged in users */}
+                  <Link to="/menu">
+                    <motion.div
+                      className="text-gray-700 hover:text-orange-600 font-poppins font-semibold transition-colors duration-300 text-[10px] sm:text-sm md:text-base whitespace-nowrap hidden sm:block"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Menu
+                    </motion.div>
+                  </Link>
 
-              <Link to="/analytics">
-                <motion.div
+                  <Link to="/pesanan">
+                    <motion.div
+                      className="text-gray-700 hover:text-orange-600 font-poppins font-semibold transition-colors duration-300 text-[10px] sm:text-sm md:text-base whitespace-nowrap"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Pesanan
+                    </motion.div>
+                  </Link>
+
+                  <Link to="/analytics">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <div className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-poppins font-bold px-2 sm:px-4 md:px-6 py-1 sm:py-2 rounded-full shadow-lg border-2 border-orange-600 text-[10px] sm:text-sm md:text-base whitespace-nowrap">
+                        Analytics
+                      </div>
+                    </motion.div>
+                  </Link>
+
+                  {/* Logout button */}
+                  <motion.button
+                    onClick={handleLogout}
+                    className="text-gray-700 hover:text-orange-600 font-poppins font-semibold transition-colors duration-300 text-[10px] sm:text-sm md:text-base whitespace-nowrap"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Logout
+                  </motion.button>
+                </>
+              ) : (
+                /* Login button for non-logged in users */
+                <motion.button
+                  onClick={handleLogin}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <div className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-poppins font-bold px-2 sm:px-4 md:px-6 py-1 sm:py-2 rounded-full shadow-lg border-2 border-orange-600 text-[10px] sm:text-sm md:text-base whitespace-nowrap">
-                    Analytics
+                    Log in
                   </div>
-                </motion.div>
-              </Link>
+                </motion.button>
+              )}
             </div>
           </div>
         </div>

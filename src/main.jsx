@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from './contexts/authContext.jsx';
 import Navbar from "./components/Navbar";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
@@ -17,6 +18,7 @@ import "./index.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
+    <AuthProvider>
     <BrowserRouter>
       <Navbar />
       <Routes>
@@ -33,5 +35,6 @@ createRoot(document.getElementById("root")).render(
         <Route path="/menu-user/:warungId" element={<MenuUser />} />
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
   </React.StrictMode>
 );

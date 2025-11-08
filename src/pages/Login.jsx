@@ -13,9 +13,11 @@ import { Separator } from "@/components/ui/separator";
 import { LogIn, Mail, Lock, ArrowRight } from "lucide-react";
 import bgImage from "@/assets/Background.svg";
 import { authService } from "@/services";
+import { useAuth } from "../contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -36,6 +38,8 @@ const Login = () => {
         formData.email,
         formData.password
       );
+
+      login(response.user);
 
       // Redirect based on user role
       if (response.role === "customer") {
