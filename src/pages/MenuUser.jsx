@@ -127,7 +127,7 @@ export default function MenuUser() {
       image_url: item.imageUrl,
       warungId: parseInt(warungId),
       warungName: warungData?.name || "Warung",
-      menu_item_id: item.id, // This is important for the API
+      menu_item_id: item.id, 
     };
 
     console.log("Adding to cart:", itemToAdd);

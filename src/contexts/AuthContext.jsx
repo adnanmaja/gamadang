@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { authService } from '../services/authService';
 
 const AuthContext = createContext();
@@ -15,16 +15,16 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(authService.isAuthenticated());
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
 
-  const login = (userData) => {
+  const login = useCallback((userData) => {
     setIsLoggedIn(true);
     setCurrentUser(userData);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     authService.logout();
     setIsLoggedIn(false);
     setCurrentUser(null);
-  };
+  }, []);
 
   // Listen for storage changes 
   useEffect(() => {
@@ -37,12 +37,12 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     isLoggedIn,
     currentUser,
     login,
     logout
-  };
+  }), [isLoggedIn, currentUser, login, logout]);
 
   return (
     <AuthContext.Provider value={value}>

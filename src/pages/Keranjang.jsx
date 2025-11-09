@@ -203,7 +203,7 @@ export default function Keranjang() {
           alt={item.name}
           className="w-full h-full object-cover"
           onError={(e) => {
-            e.target.src = "/api/placeholder/180/180";
+            // e.target.src = "/api/placeholder/180/180";
           }}
         />
       </div>

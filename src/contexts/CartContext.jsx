@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
 
 const CartContext = createContext();
 
@@ -9,7 +9,8 @@ const CART_ACTIONS = {
   UPDATE_QUANTITY: 'UPDATE_QUANTITY',
   CLEAR_CART: 'CLEAR_CART',
   SET_KANTIN: 'SET_KANTIN',
-  LOAD_CART: 'LOAD_CART'
+  LOAD_CART: 'LOAD_CART',
+  LOAD_KANTIN: 'LOAD_KANTIN'
 };
 
 // Reducer function
@@ -21,29 +22,33 @@ function cartReducer(state, action) {
         items: action.payload || []
       };
     
-    // In CartContext.jsx, update the ADD_ITEM case:
+    case CART_ACTIONS.LOAD_KANTIN:
+      return {
+        ...state,
+        kantinInfo: action.payload
+      };
+    
     case CART_ACTIONS.ADD_ITEM:
-    const existingItem = state.items.find(item => 
+      const existingItem = state.items.find(item => 
         item.id === action.payload.id && 
         item.warungId === action.payload.warungId
-    );
-    
-    if (existingItem) {
+      );
+      
+      if (existingItem) {
         return {
-        ...state,
-        items: state.items.map(item =>
+          ...state,
+          items: state.items.map(item =>
             item.id === action.payload.id && item.warungId === action.payload.warungId
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          )
         };
-    }
-    
-    return {
+      }
+      
+      return {
         ...state,
         items: [...state.items, { ...action.payload, quantity: 1 }]
-    };
-
+      };
 
     case CART_ACTIONS.REMOVE_ITEM:
       return {
@@ -92,33 +97,67 @@ const initialState = {
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  const loadedRef = useRef(false);
 
-  // Load cart from localStorage on mount
+  // Load cart from localStorage on mount ONCE
   useEffect(() => {
+    if (loadedRef.current) return; // Prevent multiple loads
+    loadedRef.current = true;
+
     const savedCart = localStorage.getItem('cart');
     const savedKantin = localStorage.getItem('kantinInfo');
     
     if (savedCart) {
-      dispatch({
-        type: CART_ACTIONS.LOAD_CART,
-        payload: JSON.parse(savedCart)
-      });
+      try {
+        dispatch({
+          type: CART_ACTIONS.LOAD_CART,
+          payload: JSON.parse(savedCart)
+        });
+      } catch (e) {
+        console.error('Failed to parse cart from localStorage', e);
+      }
     }
     
     if (savedKantin) {
-      dispatch({
-        type: CART_ACTIONS.SET_KANTIN,
-        payload: JSON.parse(savedKantin)
-      });
+      try {
+        dispatch({
+          type: CART_ACTIONS.LOAD_KANTIN,
+          payload: JSON.parse(savedKantin)
+        });
+      } catch (e) {
+        console.error('Failed to parse kantin from localStorage', e);
+      }
     }
   }, []);
 
-  // Save to localStorage whenever cart changes
+  // Save to localStorage with debouncing to prevent spam
+  const saveTimeoutRef = useRef(null);
+  
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(state.items));
+    if (!loadedRef.current) return; // Don't save during initial load
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      if (state.items.length > 0) {
+        localStorage.setItem('cart', JSON.stringify(state.items));
+      } else {
+        localStorage.removeItem('cart');
+      }
+    }, 100);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [state.items]);
 
   useEffect(() => {
+    if (!loadedRef.current) return;
+
     if (state.kantinInfo) {
       localStorage.setItem('kantinInfo', JSON.stringify(state.kantinInfo));
     } else {
@@ -126,25 +165,24 @@ export function CartProvider({ children }) {
     }
   }, [state.kantinInfo]);
 
-  // Action creators
-  const addToCart = (item) => {
+  // Stable action creators
+  const addToCart = useCallback((item) => {
     dispatch({ type: CART_ACTIONS.ADD_ITEM, payload: item });
-  };
+  }, []);
 
-  const removeFromCart = (itemId) => {
+  const removeFromCart = useCallback((itemId) => {
     dispatch({ type: CART_ACTIONS.REMOVE_ITEM, payload: itemId });
-  };
+  }, []);
 
-  const updateQuantity = (itemId, quantity) => {
+  const updateQuantity = useCallback((itemId, quantity) => {
     dispatch({ type: CART_ACTIONS.UPDATE_QUANTITY, payload: { id: itemId, quantity } });
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     dispatch({ type: CART_ACTIONS.CLEAR_CART });
-  };
+  }, []);
 
-  const setKantin = (kantinInfo) => {
-    // Validate that kantinInfo has the expected structure
+  const setKantin = useCallback((kantinInfo) => {
     if (kantinInfo && typeof kantinInfo === 'object') {
       const validatedKantin = {
         id: kantinInfo.id,
@@ -155,34 +193,44 @@ export function CartProvider({ children }) {
       };
       dispatch({ type: CART_ACTIONS.SET_KANTIN, payload: validatedKantin });
     }
-  };
+  }, []);
 
-  const clearKantin = () => {
+  const clearKantin = useCallback(() => {
     dispatch({ type: CART_ACTIONS.SET_KANTIN, payload: null });
-  };
+  }, []);
 
-  const calculateTotal = () => {
-    return state.items.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
+  // Stable helper functions  
+  const calculateTotal = useCallback(() => {
+    return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+  }, [state.items]);
 
-  const getCartItemCount = () => {
+  const getCartItemCount = useCallback(() => {
     return state.items.reduce((count, item) => count + item.quantity, 0);
-  };
+  }, [state.items]);
 
-  // Check if current cart belongs to the selected kantin
-  const isCartFromKantin = (kantinId) => {
+  const isCartFromKantin = useCallback((kantinId) => {
     return state.kantinInfo?.id === kantinId;
-  };
+  }, [state.kantinInfo?.id]);
 
-  // Clear cart and kantin when switching to a different kantin
-  const switchKantin = (newKantinInfo) => {
+  const switchKantin = useCallback((newKantinInfo) => {
     if (state.kantinInfo && state.kantinInfo.id !== newKantinInfo.id) {
-      clearCart();
+      dispatch({ type: CART_ACTIONS.CLEAR_CART });
     }
-    setKantin(newKantinInfo);
-  };
+    if (newKantinInfo && typeof newKantinInfo === 'object') {
+      const validatedKantin = {
+        id: newKantinInfo.id,
+        name: newKantinInfo.name || '',
+        description: newKantinInfo.description || '',
+        location: newKantinInfo.location || '',
+        image_url: newKantinInfo.image_url || null
+      };
+      dispatch({ type: CART_ACTIONS.SET_KANTIN, payload: validatedKantin });
+    }
+  }, [state.kantinInfo?.id]);
 
-  const value = {
+  // Create stable context value using ref
+  const valueRef = useRef();
+  valueRef.current = {
     items: state.items,
     kantinInfo: state.kantinInfo,
     addToCart,
@@ -198,7 +246,7 @@ export function CartProvider({ children }) {
   };
 
   return (
-    <CartContext.Provider value={value}>
+    <CartContext.Provider value={valueRef.current}>
       {children}
     </CartContext.Provider>
   );
